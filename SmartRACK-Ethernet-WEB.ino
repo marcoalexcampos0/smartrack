@@ -1,4 +1,10 @@
 /* TESTAR:
+ *
+ * smartRACK | SMARTrack | SmartRack | SMARTRack
+ * Copyright 2018 ® Claranet / ITEN
+ * Marco Campos <marco.campos@pt.clara.net>
+ *
+ * Usa bibliotecas de terceiros com os respectivos copyright.
  * 
  * PORTAS 1 e 2 OK
  * Numero máximo de sensores DS18B20 (mudar para 1 e ver se funciona) OK
@@ -6,7 +12,7 @@
  * Colocar as etiquetas nos cabos ~OK
  * Leitura das PORTAS (calibrar amperagem)
  * Validar output na consola, ZABBIX e WEB+JSON
- * 
+ *
  * a) Estado das portas (criada função verifica_portas() ) OK
  * b) Função pausa OK
  * c) Output do JSON (webserver) OK
@@ -14,37 +20,32 @@
  * e) Verificação dos dados enviados pelo sendzabbix (zabbix trapper) porque mudamos o nome para "hostname" (snifar o pacote enviado e/ou activar o debug dentro da função) OK
  * f) Testar o ligar/desligar via web (ainda por fazer) das tomadas electricas ("remote-reboot")
  * g) Todo o resto que foi modificado.... :)
- * 
+ *
  * ---------------------------------------------------------------
  * Este código:
  * - Lê sondas  - DS18B20 (temperatura)
  *              - DHT22 (temperatura e humidade)
  *              - Contactos secos (sensor de porta)
  *              - SCT-013 (corrente)
- *              
+ *
  * - Disponibiliza um WEB Server - Leitura individual de cada sensor (/TEMP1, TEMP2, etc)
  *                               - Leitura global (URL /) em - JSON
  *                                                           - XML
  *                                                           - HTML
- * 
+ *
  * - Envia Traps para um servidor/proxy ZABBIX
- * 
+ *
  * - Lê o UPTIME
- * 
+ *
  * - Mantêm um registo e informa o status dos alarmes via um LED de Status do RACK
- * 
+ *
  * - Disponibiliza um LOG na consola com 4 níveis de DEBUG
  * ---------------------------------------------------------------
  */
 
 
 /*
- * smartRACK | SMARTrack | SmartRack | SMARTRack
- * Copyright 2018 ® Claranet / ITEN
- * Marco Campos <marco.campos@pt.clara.net>
- * 
- * Usa bibliotecas de terceiros com os respectivos copyright.
- * 
+ *
  * Falta:
  *    - Incluir as bibliotecas de SNMP (não é possível no UNO/Ethernet, só no MEGA) (ethernet feito)
  *    - Actualizar o LED_PORTA de STATUS do bastidor (verde, amarelo, vermelho, sitilar/empiscar) (tudo menos piscar)
@@ -73,13 +74,13 @@
   IPAddress ip(192,168,193,123);
   IPAddress subnet(255, 255, 255, 0);
   IPAddress gateway(192, 168, 193, 1);
-  IPAddress zabbix(195, 22, 17, 155); 
+  IPAddress zabbix(195, 22, 17, 155);
   const char hostname[] = "SMARTRACK-F0R0-ERM"; // Obrigatóriamente com 18 caracteres!!!
   int debug = 2; // 0: ALARM, 1: ERRO, 2: INFO, 3: DEBUG (não usado ainda)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-//* Purpose : Zabbix Sender * 
+//* Purpose : Zabbix Sender *
   //* Author : Schotte Vincent * https://forum.arduino.cc/index.php?topic=189611.0
   //  #include <Base64.h>
   //  #include <SPI.h>
@@ -88,10 +89,10 @@
   //  IPAddress ip(192,168,193,123);
   //  IPAddress gateway(255, 255, 255, 0);
   //  IPAddress subnet(192, 168, 193, 1);
-  //  IPAddress zabbix(195, 22, 17, 155); 
+  //  IPAddress zabbix(195, 22, 17, 155);
   EthernetClient zabclient ;
   // Initialize the Ethernet server library
-  // with the IP address and port you want to use 
+  // with the IP address and port you want to use
   // (port 80 is default for HTTP):
   EthernetServer server(80);
 
@@ -101,7 +102,7 @@
   //  #include <DHT.h>
   //  #include <DHT_U.h>
   // Uncomment the type of sensor in use:
-  //#define DHTTYPE           DHT11     // DHT 11 
+  //#define DHTTYPE           DHT11     // DHT 11
   //#define DHTTYPE           DHT21     // DHT 21 (AM2301)
   // See guide for details on sensor wiring and usage:
   //   https://learn.adafruit.com/dht/overview
@@ -238,7 +239,7 @@ void setup() {
   Serial.print  (F("Unique ID:  ")); Serial.println(sensor.sensor_id);
   Serial.print  (F("Max Value:  ")); Serial.print(sensor.max_value); Serial.println(F(" *C"));
   Serial.print  (F("Min Value:  ")); Serial.print(sensor.min_value); Serial.println(F(" *C"));
-  Serial.print  (F("Resolution: ")); Serial.print(sensor.resolution); Serial.println(F(" *C"));  
+  Serial.print  (F("Resolution: ")); Serial.print(sensor.resolution); Serial.println(F(" *C"));
 
   // Print humidity sensor details.
   dht.humidity().getSensor(&sensor);
@@ -249,7 +250,7 @@ void setup() {
   Serial.print  (F("Unique ID:  ")); Serial.println(sensor.sensor_id);
   Serial.print  (F("Max Value:  ")); Serial.print(sensor.max_value); Serial.println(F("%"));
   Serial.print  (F("Min Value:  ")); Serial.print(sensor.min_value); Serial.println(F("%"));
-  Serial.print  (F("Resolution: ")); Serial.print(sensor.resolution); Serial.println(F("%"));  
+  Serial.print  (F("Resolution: ")); Serial.print(sensor.resolution); Serial.println(F("%"));
   // Set delay between sensor readings based on sensor details.
   delayMS = sensor.min_delay / 1000;
 
@@ -270,7 +271,7 @@ void setup() {
   }
   Serial.println();
   if (!sensors.getAddress(sensorsDS18B20[0], 0)) {
-     Serial.println(F("Sensores nao encontrados !")); 
+     Serial.println(F("Sensores nao encontrados !"));
   } else {
     // Mostra o endereco do sensor encontrado no barramento
     Serial.print(F("Endereco sensor: "));
@@ -289,7 +290,7 @@ void setup() {
   // Inicializa os sensores das portas
   pinMode(PORTA_PIN[0],INPUT);
   pinMode(PORTA_PIN[1],INPUT);
-  
+
   //Serial.print(F("IP Address: ")); Serial.print(printIPAddress(Ethernet.localIP()));
   Serial.println();
   Serial.print(F("IP Address: ")); Serial.println( printIPAddress(Ethernet.localIP()) + " / " + printIPAddress(subnet) + " (" + printIPAddress(ip) + ")");
@@ -302,7 +303,7 @@ void setup() {
   Serial.println();
   set_status_led(0, 0);
 
-  pausa(1, false); 
+  pausa(1, false);
 }
 
 void lerPincasAmp()
@@ -329,7 +330,7 @@ float get_corriente(int AMPE_PIN)
   unsigned long tiempo=millis();
   int N=0;
   while(millis()-tiempo<500)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
-  { 
+  {
     //voltajeSensor = analogRead(AMPE_PIN) * (1.1 / 1023.0);////voltaje del sensor
     voltajeSensor = analogRead(AMPE_PIN) * (1.0 / 1023.0);////voltaje del sensor
     //corriente=voltajeSensor*30.0; //corriente=VoltajeSensor*(30A/1V)
@@ -357,11 +358,11 @@ unsigned long get_network_time()
 {
   // Esta função era suposto ir buscar o tempo certo via NTP ou outro protocolo... mas por restrições de memória não vamos fazer para já...
   //unsigned long t = 443405; // 5 dias, 3 horas, 10 minutos e 5 segundos (usado como exemplo);
-  unsigned long t = 0; 
+  unsigned long t = 0;
   if (debug >= 2 )
   {
     Serial.print(F("0:0:0:0: INFO: Geting network time... "));
-    Serial.print(t); Serial.println(F("s"));    
+    Serial.print(t); Serial.println(F("s"));
   }
   return t;
 }
@@ -413,7 +414,7 @@ void set_status_led (int sensor, int alarm) {
       digitalWrite(status_led1, 1);
       digitalWrite(status_led2, 1);
       digitalWrite(status_led3, 0);
-      break;   
+      break;
     case 2:
       if ( debug >= 2 ) { Serial.print(get_time()); Serial.print(F(": INFO: Coloca o LED de status a VERMELHO")); Serial.print(F(". Sensor: ")); Serial.println(sensor); }
       digitalWrite(status_led1, 1);
@@ -444,7 +445,7 @@ void lerDS18B20() {
     DS18B20_temp[i] = sensors.getTempC(sensorsDS18B20[i]);
     if ( i == 1 ) { DS18B20_temp[i] = DS18B20_temp[i] + 0.30; } // Se o sensor for o "28FF5CE00217039A" então acrescenta 0,3º (erro do sensor 'chinoca')
 
-  
+
 //    if ( DS18B20_temp[i] == -127 ) {
 //      if ( debug >= 1) { Serial.print(get_time()); Serial.print(F(": ERRO: Erro ao ler o sensor DS18B20: ")); mostra_endereco_sensor(sensorsDS18B20[i]); Serial.println(); }
 //    } else {
@@ -465,7 +466,7 @@ void lerDS18B20() {
         }
         else {
           if ( alarms[i+2] != YELLOW ) { set_status_led(i+2, YELLOW); }
-        }    
+        }
     //}
   }
 }
@@ -484,7 +485,7 @@ void lerLM35DZ() {
       }
       else {
         if ( alarms[TEMP2] != YELLOW) { set_status_led(TEMP2, YELLOW); }
-      }    
+      }
     }
 }
 
@@ -492,12 +493,12 @@ void lerDHT22() {
   // Estado do sensor DHT22 (temperatura e humidade digital):
 
   //Serial.println(F("DHT22:"));
-  sensors_event_t event;  
+  sensors_event_t event;
 
   // Get temperature event and print its value.
   dht.temperature().getEvent(&event);
   DHT22_temp = event.temperature;
-  
+
   if (isnan(event.temperature)) {
     if ( debug >= 1 ) { Serial.print(get_time()); Serial.println(F(": ERRO: Erro ao ler o sensor DHT22 (temperatura)")); }
   }
@@ -513,7 +514,7 @@ void lerDHT22() {
       if ( alarms[TEMP2] != GREEN ) { set_status_led(TEMP2, YELLOW); }
     }
   }
-  
+
   // Get humidity event and print its value.
   dht.humidity().getEvent(&event);
   DHT22_humi = event.relative_humidity;
@@ -541,7 +542,7 @@ void lerPORTA() {
   if ( debug >= 2 )
   {
     for (int i=0; i<2; i++) {
-      
+
       Serial.print(get_time()); Serial.print(F(": INFO: PORTA")); Serial.print(i); Serial.print(F(": "));
       if (ESTADO_PORTA[i] == HIGH) {
         Serial.println(F("ABERTA"));
@@ -550,7 +551,7 @@ void lerPORTA() {
       else {
         Serial.println(F("FECHADA"));
         PORTA_status[i] = "Fechada";
-      }  
+      }
     }
   }
 }
@@ -700,7 +701,7 @@ void webserver() {
             client.println("}}");
             break;
             }
-          } 
+          }
           else
           {
             if ( primeiraLinha ) { comando += c; }
@@ -745,7 +746,7 @@ void sendzabbix(char key1[], char value1[])
  char base64key1[30];
  char base64value1[30];
 
-//smartRACK-F0R0-erm (18) 
+//smartRACK-F0R0-erm (18)
 //TEMP1 (5)
 //20.00 (5)
 //c21hcnRSQUNLLUYwUjAtZXJt (24)
@@ -772,7 +773,7 @@ void sendzabbix(char key1[], char value1[])
 //   Serial.print(value1); Serial.print(" - "); Serial.print(value1size);
 //   Serial.println(F("</data>"));
 //   Serial.println(F("</req>"));
-   
+
  if (zabclient.connect(zabbix,10051))
   {
 //   base64_encode(base64host , host , hostsize );
@@ -861,7 +862,7 @@ void verifica_portas()
 void pausa(unsigned long int tempo, boolean tipo) {
   // Tempo: Número de segundos para a pausa
   // Tipo: TRUE-> com output "...", FALSE sem output
-  
+
       char a[4] = { '|', '/', '-', '\\' };
       unsigned long int t = tempo * 1000;
       unsigned long int t1 = millis();
@@ -870,12 +871,12 @@ void pausa(unsigned long int tempo, boolean tipo) {
       //if ( tipo ) { syslog(0, "Pausa por " + String(tempo) + "seg... "); }
       while ( t2 - t1 < t )
       {
-        for (int i=0; i<4; i++ ) 
+        for (int i=0; i<4; i++ )
         {
           webserver();
           digitalWrite(LED_STATUS_PIN,LOW);
           delay(250);
-          verifica_portas();          
+          verifica_portas();
           digitalWrite(LED_STATUS_PIN,HIGH);
           delay(250);
           t2 = millis();
@@ -891,7 +892,7 @@ void loop() {
   lerDS18B20();
   digitalWrite(LED_STATUS_PIN,HIGH);
   pausa(1, false);
- 
+
   digitalWrite(LED_STATUS_PIN,LOW);
   lerLM35DZ();
   digitalWrite(LED_STATUS_PIN,HIGH);
@@ -912,7 +913,7 @@ void loop() {
   digitalWrite(LED_STATUS_PIN,HIGH);
   //pausa(1, false);
 
-  pausa(60, true);  
+  pausa(60, true);
 }
 
 //void setup() {
@@ -998,7 +999,7 @@ void loop() {
 //          client.println("</head>");
 //          client.println("<body>");
 //          client.println("<font face=\"Courier\" size=2>");
-//          
+//
 //          client.println("Temperatura: <br />");
 //          client.print("&nbsp;LM35DZ: &nbsp;"); client.print(LM35DZ_temp); client.print("&#186;C"); client.println("<br />");
 //          client.print("&nbsp;DHT22: &nbsp; "); client.print(DHT22_temp); client.print("&#186;C"); client.println("<br />");
@@ -1040,4 +1041,3 @@ void loop() {
 //          client.println("      <escala>Boleana</escala>");
 //          client.println("   </sonda>");
 //          client.println("</smartRACK>");
-
