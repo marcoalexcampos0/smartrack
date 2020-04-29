@@ -1,4 +1,4 @@
-# smartrack
+# smartRack
 
 Monitors sensors on a rack and reports to Zabbix server
 - Temperature (multiple)
